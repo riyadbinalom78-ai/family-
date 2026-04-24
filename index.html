@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+<title>Patoari Family Tree</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Lora:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════════════════
+   CSS VARIABLES & RESET
+══════════════════════════════ */
+:root {
+  --cream:      #f5edda;
+  --cream2:     #ede0c6;
+  --parchment:  #fdf8ee;
+  --brown:      #4a2e1a;
+  --brown2:     #6b4423;
+  --gold:       #b8860b;
+  --gold2:      #d4a843;
+  --gold-glow:  rgba(212,168,67,0.18);
+  --text1:      #2d1b0e;
+  --text2:      #6b4c35;
+  --text3:      #9a7a5e;
+  --border:     #d4b896;
+  --border-g:   #c9a060;
+  --cardbg:     rgba(255,252,240,0.93);
+  --shadow-sm:  0 2px 10px rgba(80,40,10,0.12);
+  --shadow-md:  0 4px 18px rgba(80,40,10,0.16);
+  --shadow-gld: 0 0 0 4px rgba(212,168,67,0.2), 0 4px 20px rgba(184,134,11,0.22);
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  min-height: 100vh;
+  background-color: var(--cream);
+  background-image: radial-gradient(ellipse 90% 70% at 50% 0%, var(--parchment) 0%, var(--cream2) 100%);
+  font-family: 'Lora', serif;
+  color: var(--text1);
+  overflow-x: hidden;
+}
+
+/* ══════════════════════════════
+   BACKGROUND & WATERMARK
+══════════════════════════════ */
+.bg-fixed {
+  position: fixed; inset: 0; z-index: 0;
+  pointer-events: none;
+}
+
+.bg-watermark {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0.06;
+}
+
+.bg-watermark svg { width: min(85vw, 540px); height: auto; }
+
+/* Corner ornaments */
+.corner { position: fixed; width: 100px; height: 100px; opacity: 0.13; pointer-events: none; z-index: 0; }
+.corner.tl { top: 0; left: 0; }
+.corner.tr { top: 0; right: 0; transform: scaleX(-1); }
+.corner.bl { bottom: 0; left: 0; transform: scaleY(-1); }
+.corner.br { bottom: 0; right: 0; transform: scale(-1,-1); }
+
+/* ══════════════════════════════
+   PAGE LAYOUT
+══════════════════════════════ */
+.page {
+  position: relative; z-index: 1;
+  padding: 28px 10px 70px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+/* ══════════════════════════════
+   TITLE
+══════════════════════════════ */
+.title-block {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.title-main {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(26px, 8vw, 46px);
+  color: var(--brown);
+  letter-spacing: 2px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.title-ornament {
+  display: flex; align-items: center; justify-content: center;
+  gap: 12px; margin: 10px auto 6px;
+  max-width: 280px;
+}
+
+.title-ornament .line {
+  flex: 1; height: 1px;
+  background: linear-gradient(to right, transparent, var(--gold2));
+}
+.title-ornament .line.r {
+  background: linear-gradient(to left, transparent, var(--gold2));
+}
+.title-ornament .diamond { color: var(--gold2); font-size: 14px; }
+
+.title-sub {
+  font-size: 9.5px;
+  letter-spacing: 3.5px;
+  text-transform: uppercase;
+  color: var(--text3);
+  font-family: 'Lora', serif;
+}
+
+/* ══════════════════════════════
+   TREE WRAPPER
+══════════════════════════════ */
+.tree {
+  position: relative;
+  display: flex; flex-direction: column; align-items: center;
+}
+
+/* SVG Lines overlay - drawn by JS */
+#lines-svg {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  z-index: 2;
+  overflow: visible;
+}
+
+/* ══════════════════════════════
+   GENERATION ROWS
+══════════════════════════════ */
+.gen-row {
+  position: relative; z-index: 3;
+  display: flex; align-items: flex-start;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.gen-spacer { height: 36px; }
+
+/* ══════════════════════════════
+   SPOUSE CONNECTOR
+══════════════════════════════ */
+.spouse-conn {
+  display: flex; flex-direction: column; align-items: center;
+  padding-top: 30px; gap: 3px; flex-shrink: 0;
+}
+
+.spouse-conn .heart { color: #c0748a; font-size: 14px; line-height: 1; }
+.spouse-conn .vdrop { width: 1px; height: 12px; background: linear-gradient(to bottom, #c0748a55, transparent); }
+
+/* ══════════════════════════════
+   PERSON CARD
+══════════════════════════════ */
+.pcard {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 7px; text-decoration: none; color: inherit;
+  cursor: default;
+  position: relative; z-index: 3;
+}
+
+/* Photo oval */
+.oval-wrap {
+  position: relative;
+}
+
+.oval {
+  border-radius: 50%;
+  overflow: hidden;
+  background: #120b04; /* dark fallback */
+  border: 3px solid var(--border);
+  box-shadow: var(--shadow-sm), inset 0 1px 2px rgba(255,255,255,0.1);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+
+.oval img {
+  width: 100%; height: 100%;
+  object-fit: cover; display: block;
+}
+
+/* oval sizes */
+.oval-xl { width: 90px; height: 108px; }
+.oval-lg { width: 76px; height: 92px; }
+.oval-md { width: 64px; height: 76px; }
+.oval-sm { width: 52px; height: 62px; }
+
+/* ── INFO BOX ── */
+.info {
+  text-align: center;
+  background: var(--cardbg);
+  border: 1px solid var(--border);
+  border-radius: 30px;
+  padding: 9px 11px 11px;
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(2px);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* info sizes */
+.info-xl { min-width: 114px; max-width: 144px; }
+.info-lg { min-width: 100px; max-width: 130px; }
+.info-md { min-width: 86px; max-width: 116px; }
+.info-sm { min-width: 70px; max-width: 96px; padding: 7px 9px 9px; }
+
+/* Lineage path highlight (Gen0, Gen1, Jahangir+Rokeya) */
+.lineage .oval { border-color: var(--border-g); }
+.lineage .info { border-color: rgba(212,168,67,0.5); background: rgba(255,253,242,0.97); box-shadow: var(--shadow-sm), 0 0 0 2px rgba(212,168,67,0.14); }
+
+/* ── RIYAD HIGHLIGHT ── Psychology: size, warmth, golden glow, central position ── */
+.riyad-card { cursor: pointer; }
+
+.riyad-card .oval {
+  border: 3px solid var(--gold);
+  box-shadow: var(--shadow-gld);
+  width: 82px; height: 98px; /* slightly larger */
+}
+
+.riyad-card .info {
+  border: 2px solid var(--gold);
+  background: rgba(255,254,244,0.99);
+  box-shadow: var(--shadow-md), 0 0 0 4px rgba(212,168,67,0.14);
+  min-width: 108px; max-width: 138px;
+}
+
+.riyad-card:hover .info {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md), 0 0 0 4px rgba(212,168,67,0.22), 0 8px 30px rgba(184,134,11,0.22);
+}
+
+/* ── TEXT INSIDE CARD ── */
+.n-bn { font-family: 'Playfair Display', serif; font-size: 11.5px; color: var(--text1); font-weight: 600; line-height: 1.45; }
+.n-en { font-size: 9.5px; color: var(--text2); font-style: italic; line-height: 1.3; margin-top: 1px; }
+.rel  { font-size: 8.5px; color: var(--gold); text-transform: uppercase; letter-spacing: 0.7px; margin-top: 4px; font-family: 'Lora', serif; }
+.dt   { font-size: 8.5px; color: var(--text3); margin-top: 2px; }
+.hint { font-size: 7.5px; color: var(--gold); letter-spacing: 1px; margin-top: 3px; opacity: 0.8; }
+
+/* Small-card text */
+.info-sm .n-bn { font-size: 10px; }
+.info-sm .n-en { font-size: 8.5px; }
+.info-sm .rel  { font-size: 8px; }
+.info-sm .dt   { font-size: 8px; }
+
+/* Faded for uncles/aunts */
+.side-member { opacity: 0.78; }
+
+/* ══════════════════════════════
+   SECTION LABEL
+══════════════════════════════ */
+.sec-label {
+  font-size: 8.5px; letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--text3);
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+/* ══════════════════════════════
+   SCROLLABLE SIBLINGS ROW
+══════════════════════════════ */
+.sibs-wrap {
+  width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none; -ms-overflow-style: none;
+  padding-bottom: 4px;
+}
+.sibs-wrap::-webkit-scrollbar { display: none; }
+
+.sibs-inner {
+  display: inline-flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 8px;
+  min-width: 100%;
+  padding: 0 6px;
+}
+
+/* ══════════════════════════════
+   DIVIDER
+══════════════════════════════ */
+.divider {
+  width: 200px; height: 1px;
+  background: linear-gradient(to right, transparent, var(--gold2), transparent);
+  margin: 6px auto;
+}
+
+/* ══════════════════════════════
+   RESPONSIVE
+══════════════════════════════ */
+@media (max-width: 400px) {
+  .oval-xl { width: 76px; height: 90px; }
+  .oval-lg { width: 64px; height: 76px; }
+  .oval-md { width: 56px; height: 66px; }
+  .oval-sm { width: 46px; height: 54px; }
+  .riyad-card .oval { width: 70px; height: 84px; }
+  .info-xl { min-width: 100px; max-width: 126px; }
+  .info-lg { min-width: 88px; max-width: 112px; }
+  .info-md { min-width: 76px; max-width: 102px; }
+  .info-sm { min-width: 62px; max-width: 84px; }
+  .riyad-card .info { min-width: 96px; max-width: 122px; }
+}
+
+@media (max-width: 340px) {
+  .oval-xl { width: 66px; height: 78px; }
+  .oval-lg { width: 56px; height: 66px; }
+  .oval-sm { width: 40px; height: 48px; }
+  .n-bn { font-size: 9.5px; }
+  .n-en { font-size: 8px; }
+}
+
+/* ══════════════════════════════
+   ANIMATIONS
+══════════════════════════════ */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.gen-row, .gen-spacer, .sec-label, .sibs-wrap, .divider {
+  animation: fadeUp 0.6s ease both;
+}
+.gen-row:nth-child(1)  { animation-delay: 0.05s; }
+.gen-row:nth-child(3)  { animation-delay: 0.18s; }
+.gen-row:nth-child(5)  { animation-delay: 0.32s; }
+.gen-row:nth-child(7)  { animation-delay: 0.48s; }
+.gen-row:nth-child(9)  { animation-delay: 0.62s; }
+.gen-row:nth-child(11) { animation-delay: 0.78s; }
+
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════
+     BACKGROUND LAYER
+══════════════════════════════ -->
+<div class="bg-fixed">
+  <div class="bg-watermark">
+    <svg viewBox="0 0 520 640" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- House -->
+      <rect x="160" y="400" width="200" height="170" stroke="#5c3d2e" stroke-width="3.5" fill="none"/>
+      <polygon points="150,400 260,290 370,400" stroke="#5c3d2e" stroke-width="3.5" fill="none"/>
+      <rect x="298" y="308" width="24" height="52" stroke="#5c3d2e" stroke-width="2.5" fill="none"/>
+      <rect x="236" y="456" width="48" height="114" rx="24" stroke="#5c3d2e" stroke-width="2.5" fill="none"/>
+      <rect x="172" y="420" width="48" height="38" rx="3" stroke="#5c3d2e" stroke-width="2" fill="none"/>
+      <rect x="300" y="420" width="48" height="38" rx="3" stroke="#5c3d2e" stroke-width="2" fill="none"/>
+      <line x1="196" y1="420" x2="196" y2="458" stroke="#5c3d2e" stroke-width="1.5"/>
+      <line x1="172" y1="439" x2="220" y2="439" stroke="#5c3d2e" stroke-width="1.5"/>
+      <line x1="324" y1="420" x2="324" y2="458" stroke="#5c3d2e" stroke-width="1.5"/>
+      <line x1="300" y1="439" x2="348" y2="439" stroke="#5c3d2e" stroke-width="1.5"/>
+      <circle cx="260" cy="290" r="7" stroke="#5c3d2e" stroke-width="2" fill="none"/>
+      <line x1="260" y1="283" x2="260" y2="258" stroke="#5c3d2e" stroke-width="2"/>
+      <!-- Left tree -->
+      <line x1="72" y1="570" x2="72" y2="390" stroke="#5c3d2e" stroke-width="4"/>
+      <ellipse cx="72" cy="362" rx="44" ry="64" stroke="#5c3d2e" stroke-width="2.5" fill="none"/>
+      <ellipse cx="46" cy="405" rx="30" ry="44" stroke="#5c3d2e" stroke-width="2" fill="none"/>
+      <ellipse cx="98" cy="405" rx="30" ry="44" stroke="#5c3d2e" stroke-width="2" fill="none"/>
+      <!-- Right tree -->
+      <line x1="448" y1="570" x2="448" y2="390" stroke="#5c3d2e" stroke-width="4"/>
+      <ellipse cx="448" cy="362" rx="44" ry="64" stroke="#5c3d2e" stroke-width="2.5" fill="none"/>
+      <ellipse cx="422" cy="405" rx="30" ry="44" stroke="#5c3d2e" stroke-width="2" fill="none"/>
+      <ellipse cx="474" cy="405" rx="30" ry="44" stroke="#5c3d2e" stroke-width="2" fill="none"/>
+      <!-- Corner flourishes -->
+      <path d="M18 18 Q18 56 56 56" stroke="#5c3d2e" stroke-width="1.5" fill="none"/>
+      <path d="M18 18 Q56 18 56 56" stroke="#5c3d2e" stroke-width="1.5" fill="none"/>
+      <circle cx="18" cy="18" r="5" fill="#5c3d2e"/>
+      <circle cx="56" cy="56" r="3" fill="#5c3d2e" opacity="0.5"/>
+      <path d="M502 18 Q502 56 464 56" stroke="#5c3d2e" stroke-width="1.5" fill="none"/>
+      <path d="M502 18 Q464 18 464 56" stroke="#5c3d2e" stroke-width="1.5" fill="none"/>
+      <circle cx="502" cy="18" r="5" fill="#5c3d2e"/>
+      <circle cx="464" cy="56" r="3" fill="#5c3d2e" opacity="0.5"/>
+      <path d="M18 622 Q18 584 56 584" stroke="#5c3d2e" stroke-width="1.5" fill="none"/>
+      <path d="M18 622 Q56 622 56 584" stroke="#5c3d2e" stroke-width="1.5" fill="none"/>
+      <circle cx="18" cy="622" r="5" fill="#5c3d2e"/>
+      <path d="M502 622 Q502 584 464 584" stroke="#5c3d2e" stroke-width="1.5" fill="none"/>
+      <path d="M502 622 Q464 622 464 584" stroke="#5c3d2e" stroke-width="1.5" fill="none"/>
+      <circle cx="502" cy="622" r="5" fill="#5c3d2e"/>
+      <!-- Decorative vine bottom -->
+      <path d="M80 610 Q100 595 120 610 Q140 595 160 610" stroke="#5c3d2e" stroke-width="1.5" fill="none"/>
+      <path d="M360 610 Q380 595 400 610 Q420 595 440 610" stroke="#5c3d2e" stroke-width="1.5" fill="none"/>
+    </svg>
+  </div>
+</div>
+
+<!-- Corner ornaments -->
+<svg class="corner tl" viewBox="0 0 100 100"><path d="M8 8 C8 50 50 50 50 8" stroke="#8b7355" stroke-width="1.5" fill="none"/><path d="M8 8 C50 8 50 50 8 50" stroke="#8b7355" stroke-width="1.5" fill="none"/><circle cx="8" cy="8" r="4" fill="#8b7355"/><circle cx="50" cy="50" r="2.5" fill="#8b7355" opacity="0.5"/></svg>
+<svg class="corner tr" viewBox="0 0 100 100"><path d="M8 8 C8 50 50 50 50 8" stroke="#8b7355" stroke-width="1.5" fill="none"/><path d="M8 8 C50 8 50 50 8 50" stroke="#8b7355" stroke-width="1.5" fill="none"/><circle cx="8" cy="8" r="4" fill="#8b7355"/><circle cx="50" cy="50" r="2.5" fill="#8b7355" opacity="0.5"/></svg>
+<svg class="corner bl" viewBox="0 0 100 100"><path d="M8 8 C8 50 50 50 50 8" stroke="#8b7355" stroke-width="1.5" fill="none"/><path d="M8 8 C50 8 50 50 8 50" stroke="#8b7355" stroke-width="1.5" fill="none"/><circle cx="8" cy="8" r="4" fill="#8b7355"/><circle cx="50" cy="50" r="2.5" fill="#8b7355" opacity="0.5"/></svg>
+<svg class="corner br" viewBox="0 0 100 100"><path d="M8 8 C8 50 50 50 50 8" stroke="#8b7355" stroke-width="1.5" fill="none"/><path d="M8 8 C50 8 50 50 8 50" stroke="#8b7355" stroke-width="1.5" fill="none"/><circle cx="8" cy="8" r="4" fill="#8b7355"/><circle cx="50" cy="50" r="2.5" fill="#8b7355" opacity="0.5"/></svg>
+
+
+<!-- ══════════════════════════════
+     MAIN PAGE
+══════════════════════════════ -->
+<div class="page">
+
+  <!-- TITLE -->
+  <div class="title-block">
+    <div class="title-main">Patoari Family</div>
+    <div class="title-ornament">
+      <div class="line"></div>
+      <div class="diamond">◆</div>
+      <div class="line r"></div>
+    </div>
+    <div class="title-sub">Family Tree</div>
+  </div>
+
+
+  <div class="tree" id="tree">
+    <!-- SVG lines drawn by JS -->
+    <svg id="lines-svg" aria-hidden="true"></svg>
+
+    <!-- ════════════════════
+         GEN 0: Chad + Anjuma
+    ════════════════════ -->
+    <div class="gen-row" id="gen0">
+      <!-- Chad Mia -->
+      <div class="pcard lineage" id="card-chad">
+        <div class="oval-wrap">
+          <div class="oval oval-lg">
+            <img src="chad.jpg" alt="Chad Mia Patoari" onerror="this.style.display='none'">
+          </div>
+        </div>
+        <div class="info info-lg lineage">
+          <div class="n-bn">চাঁদ মিয়া পাটোয়ারী</div>
+          <div class="n-en">Chad Mia Patoari</div>
+          <div class="rel">Great Grandfather</div>
+          <div class="dt">c. 1888 – c. 1955</div>
+        </div>
+      </div>
+
+      <!-- ♥ -->
+      <div class="spouse-conn">
+        <div class="heart">♥</div>
+        <div class="vdrop"></div>
+      </div>
+
+      <!-- Anjuma -->
+      <div class="pcard lineage" id="card-anjuma">
+        <div class="oval-wrap">
+          <div class="oval oval-lg">
+            <img src="anjuma.jpg" alt="Anjuma Matun" onerror="this.style.display='none'">
+          </div>
+        </div>
+        <div class="info info-lg lineage">
+          <div class="n-bn">আন্জুমা মাতুন</div>
+          <div class="n-en">Anjuma Matun</div>
+          <div class="rel">Great Grandmother</div>
+          <div class="dt">c. 1892 – c. 1960</div>
+        </div>
+      </div>
+    </div><!-- /gen0 -->
+
+    <div class="gen-spacer" id="sp0"></div>
+
+    <!-- ════════════════════
+         GEN 1: Habib + Jahanara
+    ════════════════════ -->
+    <div class="gen-row" id="gen1">
+      <!-- Habib -->
+      <div class="pcard lineage" id="card-habib">
+        <div class="oval-wrap">
+          <div class="oval oval-xl">
+            <img src="habib.jpg" alt="Habib Ullah Patoari" onerror="this.style.display='none'">
+          </div>
+        </div>
+        <div class="info info-xl lineage">
+          <div class="n-bn">হবিব উল্যাহ পাটোয়ারী</div>
+          <div class="n-en">Habib Ullah Patoari</div>
+          <div class="rel">Grandfather</div>
+          <div class="dt">1919 – 13 Nov 2016</div>
+        </div>
+      </div>
+
+      <!-- ♥ -->
+      <div class="spouse-conn">
+        <div class="heart">♥</div>
+        <div class="vdrop"></div>
+      </div>
+
+      <!-- Jahanara -->
+      <div class="pcard lineage" id="card-jahanara">
+        <div class="oval-wrap">
+          <div class="oval oval-xl">
+            <img src="jahanara.jpg" alt="Jahanara Matun" onerror="this.style.display='none'">
+          </div>
+        </div>
+        <div class="info info-xl lineage">
+          <div class="n-bn">জাহানারা মাতুন</div>
+          <div class="n-en">Jahanara Matun</div>
+          <div class="rel">Grandmother</div>
+          <div class="dt">1957 – 2022</div>
+        </div>
+      </div>
+    </div><!-- /gen1 -->
+
+    <div class="gen-spacer" id="sp1"></div>
+
+    <!-- ════════════════════
+         GEN 2 SONS ROW
+         (Jethu | Jahangir+Rokeya | Monu | Akhtar)
+    ════════════════════ -->
+    <div class="sec-label">Sons</div>
+    <div class="gen-row" id="gen2-sons" style="gap:0;">
+      <div class="sibs-wrap">
+        <div class="sibs-inner">
+
+          <!-- Jethu (side) -->
+          <div class="pcard side-member" id="card-jethu">
+            <div class="oval oval-sm">
+              <img src="jethu.jpg" alt="Elder Uncle" onerror="this.style.display='none'">
+            </div>
+            <div class="info info-sm">
+              <div class="n-bn">জেঠু</div>
+              <div class="n-en">Elder Uncle</div>
+              <div class="rel">Uncle</div>
+            </div>
+          </div>
+
+          <!-- ─── JAHANGIR + ROKEYA (Main lineage) ─── -->
+          <div style="display:flex;flex-direction:column;align-items:center;gap:7px;">
+            <div class="gen-row" style="gap:0; margin-bottom:0;">
+              <div class="pcard lineage" id="card-jahangir">
+                <div class="oval oval-lg">
+                  <img src="jahangir.jpg" alt="Jahangir Alam" onerror="this.style.display='none'">
+                </div>
+                <div class="info info-lg lineage">
+                  <div class="n-bn">জাহাঙ্গীর আলম</div>
+                  <div class="n-en">Jahangir Alam</div>
+                  <div class="rel">Father</div>
+                  <div class="dt">1969 – Present</div>
+                </div>
+              </div>
+
+              <div class="spouse-conn">
+                <div class="heart">♥</div>
+                <div class="vdrop"></div>
+              </div>
+
+              <div class="pcard lineage" id="card-rokeya">
+                <div class="oval oval-lg">
+                  <img src="rokeya.jpg" alt="Rokeya Begum" onerror="this.style.display='none'">
+                </div>
+                <div class="info info-lg lineage">
+                  <div class="n-bn">রোকেয়া বেগম</div>
+                  <div class="n-en">Rokeya Begum</div>
+                  <div class="rel">Mother</div>
+                  <div class="dt">1982 – Present</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- ─── end Jahangir block ─── -->
+
+          <!-- Monu (side) -->
+          <div class="pcard side-member" id="card-monu">
+            <div class="oval oval-sm">
+              <img src="monu.jpg" alt="Monu" onerror="this.style.display='none'">
+            </div>
+            <div class="info info-sm">
+              <div class="n-bn">মনু</div>
+              <div class="n-en">Monu</div>
+              <div class="rel">Uncle</div>
+              <div class="dt">1969 – Present</div>
+            </div>
+          </div>
+
+          <!-- Akhtar (side) -->
+          <div class="pcard side-member" id="card-akhtar">
+            <div class="oval oval-sm">
+              <img src="akhtar.jpg" alt="Akhtar" onerror="this.style.display='none'">
+            </div>
+            <div class="info info-sm">
+              <div class="n-bn">আকতার</div>
+              <div class="n-en">Akhtar</div>
+              <div class="rel">Uncle</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div><!-- /gen2-sons -->
+
+    <!-- Aunts row -->
+    <div class="divider" style="margin-top:10px;"></div>
+    <div class="sec-label">Aunts</div>
+    <div class="gen-row" id="gen2-aunts" style="gap:10px; flex-wrap:wrap;">
+      <div class="pcard side-member" id="card-jhorona">
+        <div class="oval oval-sm">
+          <img src="jhorona.jpg" alt="Jhorona" onerror="this.style.display='none'">
+        </div>
+        <div class="info info-sm">
+          <div class="n-bn">ঝরোনা</div>
+          <div class="n-en">Jhorona</div>
+          <div class="rel">Aunt</div>
+        </div>
+      </div>
+
+      <div class="pcard side-member" id="card-unk-sis">
+        <div class="oval oval-sm">
+          <img src="unk-sis.jpg" alt="" onerror="this.style.display='none'">
+        </div>
+        <div class="info info-sm">
+          <div class="n-en" style="font-size:10px; color:var(--text3);">Unknown</div>
+          <div class="rel">Aunt</div>
+        </div>
+      </div>
+
+      <div class="pcard side-member" id="card-lilu">
+        <div class="oval oval-sm">
+          <img src="lilu.jpg" alt="Lilu" onerror="this.style.display='none'">
+        </div>
+        <div class="info info-sm">
+          <div class="n-bn">লিলু</div>
+          <div class="n-en">Lilu</div>
+          <div class="rel">Aunt</div>
+        </div>
+      </div>
+    </div><!-- /gen2-aunts -->
+
+    <div class="gen-spacer" id="sp2"></div>
+
+    <!-- ════════════════════
+         GEN 3: Any, Keya, Riyad
+    ════════════════════ -->
+    <div class="gen-row" id="gen3" style="gap:10px; flex-wrap:wrap; justify-content:center;">
+
+      <!-- Any -->
+      <div class="pcard lineage" id="card-any">
+        <div class="oval oval-lg">
+          <img src="any.jpg" alt="Any" onerror="this.style.display='none'">
+        </div>
+        <div class="info info-lg lineage">
+          <div class="n-bn">জান্নাতুল ফেরদাউস এ্যানি</div>
+          <div class="n-en">Jannatulferdaus Any</div>
+          <div class="rel">Sister</div>
+          <div class="dt">2000 – Present</div>
+        </div>
+      </div>
+
+      <!-- Keya -->
+      <div class="pcard lineage" id="card-keya">
+        <div class="oval oval-lg">
+          <img src="keya.jpg" alt="Keya" onerror="this.style.display='none'">
+        </div>
+        <div class="info info-lg lineage">
+          <div class="n-bn">ফারহানা কেয়া</div>
+          <div class="n-en">Farhana Keya</div>
+          <div class="rel">Sister</div>
+          <div class="dt">2003 – Present</div>
+        </div>
+      </div>
+
+      <!-- ★ RIYAD ★ — Psychology: Larger, gold, central, subtle glow, linked -->
+      <a class="pcard riyad-card lineage" id="card-riyad"
+         href="https://riyadbinalom78-ai.github.io/rrr/"
+         target="_blank" rel="noopener noreferrer"
+         title="Visit Portfolio">
+        <div class="oval-wrap">
+          <div class="oval" style="width:82px;height:98px;border:3px solid #b8860b;box-shadow:0 0 0 5px rgba(212,168,67,0.2),0 4px 20px rgba(184,134,11,0.2);">
+            <img src="riyad.jpg" alt="Riyad Bin Alom" onerror="this.style.display='none'">
+          </div>
+        </div>
+        <div class="info info-xl" style="border:2px solid #b8860b;background:rgba(255,254,244,0.99);box-shadow:0 2px 12px rgba(80,40,10,0.13),0 0 0 4px rgba(212,168,67,0.13);">
+          <div class="n-bn">রিয়াদ বিন আলম</div>
+          <div class="n-en">Riyad Bin Alom</div>
+          <div class="rel">Tree Keeper</div>
+          <div class="dt">2007 – Present</div>
+          <div class="hint">↗ View Portfolio</div>
+        </div>
+      </a>
+
+    </div><!-- /gen3 -->
+
+  </div><!-- /tree -->
+</div><!-- /page -->
+
+
+<!-- ══════════════════════════════
+     JS: Draw SVG Connector Lines
+══════════════════════════════ -->
+<script>
+(function () {
+  /* Wait for fonts & layout to settle */
+  window.addEventListener('load', function () {
+    setTimeout(drawLines, 120);
+  });
+  window.addEventListener('resize', function () {
+    setTimeout(drawLines, 80);
+  });
+
+  function getCenter(el) {
+    const r = el.getBoundingClientRect();
+    const tr = document.getElementById('tree').getBoundingClientRect();
+    return {
+      x: r.left - tr.left + r.width / 2,
+      y: r.top  - tr.top  + r.height / 2,
+      top:    r.top    - tr.top,
+      bottom: r.bottom - tr.top,
+      left:   r.left   - tr.left,
+      right:  r.right  - tr.left,
+      w: r.width,
+      h: r.height
+    };
+  }
+
+  function drawLines() {
+    const svg = document.getElementById('lines-svg');
+    svg.innerHTML = '';
+
+    const treeEl = document.getElementById('tree');
+    svg.setAttribute('viewBox', `0 0 ${treeEl.offsetWidth} ${treeEl.offsetHeight}`);
+
+    const GOLD  = '#b8860b';
+    const SIDE  = '#c9a878';
+    const HEART = '#c0748a';
+
+    /* ── helper: cubic bezier path string ── */
+    function bez(x1,y1,x2,y2) {
+      const mx = (x1+x2)/2, cy1 = (y1+y2*0.3+y1*0.7), cy2 = (y2*0.7+y1*0.3);
+      // Smooth S-curve
+      return `M ${x1} ${y1} C ${x1} ${(y1+y2)/2}, ${x2} ${(y1+y2)/2}, ${x2} ${y2}`;
+    }
+
+    function line(x1,y1,x2,y2,color,width,dash){
+      const p = document.createElementNS('http://www.w3.org/2000/svg','path');
+      p.setAttribute('d', bez(x1,y1,x2,y2));
+      p.setAttribute('stroke', color);
+      p.setAttribute('stroke-width', width||1.5);
+      p.setAttribute('fill','none');
+      if(dash) p.setAttribute('stroke-dasharray', dash);
+      p.setAttribute('stroke-linecap','round');
+      svg.appendChild(p);
+    }
+
+    function dot(x,y,r,color){
+      const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
+      c.setAttribute('cx',x); c.setAttribute('cy',y); c.setAttribute('r',r||3);
+      c.setAttribute('fill',color||GOLD);
+      svg.appendChild(c);
+    }
+
+    /* ── Get positions ── */
+    const chad     = document.getElementById('card-chad');
+    const anjuma   = document.getElementById('card-anjuma');
+    const habib    = document.getElementById('card-habib');
+    const jahanara = document.getElementById('card-jahanara');
+    const jethu    = document.getElementById('card-jethu');
+    const jahangir = document.getElementById('card-jahangir');
+    const rokeya   = document.getElementById('card-rokeya');
+    const monu     = document.getElementById('card-monu');
+    const akhtar   = document.getElementById('card-akhtar');
+    const jhorona  = document.getElementById('card-jhorona');
+    const unkSis   = document.getElementById('card-unk-sis');
+    const lilu     = document.getElementById('card-lilu');
+    const any      = document.getElementById('card-any');
+    const keya     = document.getElementById('card-keya');
+    const riyad    = document.getElementById('card-riyad');
+
+    if (!chad || !habib || !jahangir || !riyad) return;
+
+    const C   = getCenter(chad);
+    const A   = getCenter(anjuma);
+    const H   = getCenter(habib);
+    const JN  = getCenter(jahanara);
+    const JT  = getCenter(jethu);
+    const JH  = getCenter(jahangir);
+    const RK  = getCenter(rokeya);
+    const MN  = getCenter(monu);
+    const AK  = getCenter(akhtar);
+    const JR  = getCenter(jhorona);
+    const UK  = getCenter(unkSis);
+    const LL  = getCenter(lilu);
+    const AN  = getCenter(any);
+    const KY  = getCenter(keya);
+    const RD  = getCenter(riyad);
+
+    /* ── Gen0 → Gen1: center between couples ── */
+    const gen0midX = (C.x + A.x) / 2;
+    const gen0botY = Math.max(C.bottom, A.bottom);
+    const gen1topY = Math.min(H.top, JN.top);
+    const gen1midX = (H.x + JN.x) / 2;
+
+    line(gen0midX, gen0botY, gen1midX, gen1topY, GOLD, 2);
+    dot(gen0midX, gen0botY, 3, GOLD);
+    dot(gen1midX, gen1topY, 3, GOLD);
+
+    /* ── Gen1 → Gen2 sons ── */
+    const gen1botY = Math.max(H.bottom, JN.bottom);
+
+    // Mid between Jahangir + Rokeya couple (main lineage)
+    const jhMidX = (JH.x + RK.x) / 2;
+    const jhTopY = Math.min(JH.top, RK.top);
+
+    // Main lineage line: Gen1 center → Jahangir+Rokeya top
+    line(gen1midX, gen1botY, jhMidX, jhTopY, GOLD, 2.5);
+    dot(gen1botY && gen1midX, gen1botY, 3, GOLD);
+
+    // Side: → Jethu
+    line(gen1midX, gen1botY, JT.x, JT.top, SIDE, 1.2, '5,4');
+
+    // Side: → Monu
+    line(gen1midX, gen1botY, MN.x, MN.top, SIDE, 1.2, '5,4');
+
+    // Side: → Akhtar
+    line(gen1midX, gen1botY, AK.x, AK.top, SIDE, 1.2, '5,4');
+
+    // Side: → Jhorona
+    line(gen1midX, gen1botY, JR.x, JR.top, SIDE, 1, '4,5');
+
+    // Side: → Unknown sister
+    line(gen1midX, gen1botY, UK.x, UK.top, SIDE, 1, '4,5');
+
+    // Side: → Lilu
+    line(gen1midX, gen1botY, LL.x, LL.top, SIDE, 1, '4,5');
+
+    /* ── Gen2 (Jahangir+Rokeya) → Gen3 ── */
+    const jhrBotY = Math.max(JH.bottom, RK.bottom);
+    const gen3midX = (AN.x + RD.x) / 2;
+    const gen3topY = Math.min(AN.top, KY.top, RD.top);
+
+    // Main gold line from parents to children mid
+    line(jhMidX, jhrBotY, gen3midX, gen3topY, GOLD, 2.5);
+
+    // From horizontal mid → each child
+    line(gen3midX, gen3topY, AN.x, AN.top, GOLD, 1.8);
+    line(gen3midX, gen3topY, KY.x, KY.top, GOLD, 1.8);
+    line(gen3midX, gen3topY, RD.x, RD.top, GOLD, 2.5);
+
+    // Gold dots at Riyad
+    dot(RD.x, RD.top, 4, GOLD);
+  }
+})();
+</script>
+
+</body>
+</html>
